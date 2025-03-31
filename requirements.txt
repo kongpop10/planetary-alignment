@@ -1,0 +1,17 @@
+# Python dependencies for Inner Solar System Collinearity Visualizer
+
+# Core scientific libraries
+numpy>=1.19.0
+pandas>=1.1.0
+scipy>=1.5.0
+
+# Astronomical calculations
+skyfield>=1.39.0
+
+# Visualization
+matplotlib>=3.3.0
+
+# GUI components
+tkcalendar>=1.6.0
+
+# Note: tkinter is part of the Python standard library and doesn't need to be installed separately
