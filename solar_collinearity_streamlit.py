@@ -57,9 +57,12 @@ st.markdown("""
 # Initialize session state for storing calculation results
 if 'calculation_results' not in st.session_state:
     st.session_state.calculation_results = {}
-    
+
+# Define a default time for the system view (e.g., current time at app start)
+DEFAULT_VIEW_TIME = pd.Timestamp.now(tz='UTC')
+
 if 'selected_extrema_time' not in st.session_state:
-    st.session_state.selected_extrema_time = None
+    st.session_state.selected_extrema_time = DEFAULT_VIEW_TIME
 
 # Load Skyfield data (do this once at the start)
 @st.cache_resource
@@ -390,10 +393,10 @@ if calculate_button:
                 'values': values,
                 'extrema_df': extrema_df
             }
-            
-            # Reset selected extrema
-            st.session_state.selected_extrema_time = None
-            
+
+            # Reset selected extrema time to the default view time
+            st.session_state.selected_extrema_time = DEFAULT_VIEW_TIME
+
             # Add a small delay to ensure progress bar is seen
             time.sleep(0.5)
             
@@ -478,29 +481,34 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
         # System view plot
         st.subheader("Solar System View")
        
-        # Display system view if a time is selected
+        # Always display the system view using the time in session state
+        # This will be the DEFAULT_VIEW_TIME initially and after calculation,
+        # or the time selected from the table/navigation.
         if st.session_state.selected_extrema_time is not None:
-            # Plot the system at the selected time
-            system_fig = plot_system_view(st.session_state.selected_extrema_time)
+            view_time = st.session_state.selected_extrema_time
+            system_fig = plot_system_view(view_time)
             st.plotly_chart(system_fig, use_container_width=True)
 
-            # Show the collinearity value
-            time_ts = ts.from_datetime(st.session_state.selected_extrema_time)
+            # Show the collinearity value for the displayed time
+            time_ts = ts.from_datetime(view_time)
             points_2d = get_heliocentric_ecliptic_coords(time_ts)
             c_index = calculate_collinearity_index(points_2d)
 
             st.metric(
-                "Collinearity Index",
+                "Collinearity Index at Displayed Time", # Clarified label
                 f"{c_index:.4f}",
                 delta=None,
                 delta_color="normal"
             )
 
-            # Add explanation of what we're seeing (Note: This is similar to the markdown at line 480)
-            # Consider removing one of them if redundant after testing.
-
+            # Add explanation
+            st.markdown(f"""
+            *Showing system configuration for **{view_time.strftime('%Y-%m-%d %H:%M')} UTC**.*
+            *Click a row in the table or use navigation controls to view a specific event. Calculate to reset to default view.*
+            """)
         else:
-            st.info("Select an event from the table or use the navigation controls to view the solar system configuration.")
+             # This case should ideally not happen anymore due to initialization
+             st.warning("System view time not set. Please calculate or reset.")
 
         # Navigation controls for extrema - moved below the system view
         if not results['extrema_df'].empty:
@@ -537,7 +545,20 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
             # Reset button
             with nav_col3:
                 if st.button("🔄 Reset", use_container_width=True):
-                    st.session_state.selected_extrema_time = None
+                    # Find the time of the peak collinearity index
+                    results = st.session_state.calculation_results
+                    if results and 'extrema_df' in results and not results['extrema_df'].empty:
+                        extrema_df = results['extrema_df']
+                        maxima_df = extrema_df[extrema_df['Type'] == 'Max']
+                        if not maxima_df.empty:
+                            peak_event = maxima_df.loc[maxima_df['Index'].idxmax()]
+                            st.session_state.selected_extrema_time = peak_event['Time']
+                        else:
+                            # Fallback: if no maxima found (unlikely if extrema_df not empty), reset to None
+                            st.session_state.selected_extrema_time = None
+                    else:
+                         # Fallback: if no results, reset to None
+                        st.session_state.selected_extrema_time = None
                     st.rerun()
 
             # Dropdown for direct selection on a new row
