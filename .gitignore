@@ -1,0 +1,3 @@
+# Exclude experiment and case study folders
+experiment/
+case study/

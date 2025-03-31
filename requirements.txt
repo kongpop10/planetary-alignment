@@ -10,6 +10,10 @@ skyfield>=1.39.0
 
 # Visualization
 matplotlib>=3.3.0
+plotly>=5.0.0
+
+# Web app framework
+streamlit>=1.0.0
 
 # GUI components
 tkcalendar>=1.6.0

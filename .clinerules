@@ -1,0 +1,21 @@
+- After making changes, **always** make sure to start up a new server so testing can be done.
+- Look for existing code to iterate on, instead of creating new code.
+- Avoid drastically changing the patterns before trying to iterate on existing ones.
+- Kill all existing related servers from previous testing before starting a new server.
+- Prefer simple solutions whenever possible.
+- Avoid duplicating code, check for other areas of the codebase with similar functionality.
+- Write code that accounts for different environments: dev, test, prod.
+- Make requested changes or those you are confident are well understood and related.
+- When fixing bugs/issues, exhaust options for existing implementations before introducing new patterns or technologies.
+- If new implementations are introduced, ensure old ones are removed to avoid duplicate logic.
+- Keep the codebase clean and organized.
+- Avoid one-off scripts in files whenever possible.
+- Refactor files that exceed 200-300 lines of code.
+- Mocking data is only needed for tests, not for dev/prod environments.
+- Never add stubbing or fake data affecting dev/prod environments.
+- Do not overwrite the .env file without first asking/confirming.
+- Focus on the code relevant to the task and avoid unrelated changes.
+- Write thorough tests for major functionalities.
+- Avoid major changes to patterns/architecture unless explicitly instructed.
+- Consider the impact of code changes on other methods or areas of the code.
+
