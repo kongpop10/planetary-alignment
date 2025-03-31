@@ -477,24 +477,47 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
     with col2:
         # System view plot
         st.subheader("Solar System View")
-        st.markdown("This view shows the positions of Mercury, Venus, Earth, and the Moon from above the ecliptic plane. The Sun is at the center (0,0). Perfect alignment would show all bodies in a straight line.")
-        
-        # Navigation controls for extrema - always show if we have results
+       
+        # Display system view if a time is selected
+        if st.session_state.selected_extrema_time is not None:
+            # Plot the system at the selected time
+            system_fig = plot_system_view(st.session_state.selected_extrema_time)
+            st.plotly_chart(system_fig, use_container_width=True)
+
+            # Show the collinearity value
+            time_ts = ts.from_datetime(st.session_state.selected_extrema_time)
+            points_2d = get_heliocentric_ecliptic_coords(time_ts)
+            c_index = calculate_collinearity_index(points_2d)
+
+            st.metric(
+                "Collinearity Index",
+                f"{c_index:.4f}",
+                delta=None,
+                delta_color="normal"
+            )
+
+            # Add explanation of what we're seeing (Note: This is similar to the markdown at line 480)
+            # Consider removing one of them if redundant after testing.
+
+        else:
+            st.info("Select an event from the table or use the navigation controls to view the solar system configuration.")
+
+        # Navigation controls for extrema - moved below the system view
         if not results['extrema_df'].empty:
             st.subheader("Navigation Controls")
-            
+
             # Determine current index or default to first item
             current_index = 0
             if st.session_state.selected_extrema_time is not None:
                 matching_rows = results['extrema_df'][results['extrema_df']['Time'] == st.session_state.selected_extrema_time]
                 if not matching_rows.empty:
                     current_index = matching_rows.index[0]
-            
+
             total_extrema = len(results['extrema_df'])
-            
+
             # Create a row with three columns for the navigation buttons
             nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 1])
-            
+
             # Previous button
             with nav_col1:
                 if st.button("⬅️ Previous", use_container_width=True):
@@ -502,7 +525,7 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
                     prev_index = (current_index - 1) % total_extrema
                     st.session_state.selected_extrema_time = results['extrema_df'].loc[prev_index, 'Time']
                     st.rerun()
-            
+
             # Next button
             with nav_col2:
                 if st.button("➡️ Next", use_container_width=True):
@@ -510,13 +533,13 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
                     next_index = (current_index + 1) % total_extrema
                     st.session_state.selected_extrema_time = results['extrema_df'].loc[next_index, 'Time']
                     st.rerun()
-            
+
             # Reset button
             with nav_col3:
                 if st.button("🔄 Reset", use_container_width=True):
                     st.session_state.selected_extrema_time = None
                     st.rerun()
-            
+
             # Dropdown for direct selection on a new row
             selected_extrema = st.selectbox(
                 "Select an event:",
@@ -524,36 +547,15 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
                 index=int(current_index),
                     format_func=lambda i: f"{display_df.loc[i, 'Event Type']} at {display_df.loc[i, 'Time (UTC)']} (C={display_df.loc[i, 'Collinearity Index']})"
                 )
-                
+
             if selected_extrema is not None and selected_extrema != current_index:
                 st.session_state.selected_extrema_time = results['extrema_df'].loc[selected_extrema, 'Time']
                 st.rerun()
-        
-        # Display system view if a time is selected
-        if st.session_state.selected_extrema_time is not None:
-            # Plot the system at the selected time
-            system_fig = plot_system_view(st.session_state.selected_extrema_time)
-            st.plotly_chart(system_fig, use_container_width=True)
             
-            # Show the collinearity value
-            time_ts = ts.from_datetime(st.session_state.selected_extrema_time)
-            points_2d = get_heliocentric_ecliptic_coords(time_ts)
-            c_index = calculate_collinearity_index(points_2d)
-            
-            st.metric(
-                "Collinearity Index", 
-                f"{c_index:.4f}",
-                delta=None,
-                delta_color="normal"
-            )
-            
-            # Add explanation of what we're seeing
             st.info("""
             This view shows the positions of Mercury, Venus, Earth, and the Moon from above the ecliptic plane.
             The Sun is at the center (0,0). Perfect alignment would show all bodies in a straight line.
             """)
-        else:
-            st.info("Select an event from the table or use the navigation controls to view the solar system configuration.")
 
 else:
     # Initial state - no calculation yet
