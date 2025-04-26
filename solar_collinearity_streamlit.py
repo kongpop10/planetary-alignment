@@ -178,7 +178,7 @@ def calculate_collinearity_over_range(start_dt_utc, end_dt_utc, num_steps=300, p
 
     if progress_bar:
         progress_bar.progress(1.0, text="Calculation complete!")
-        
+
     return times_utc, np.array(collinearity_values)
 
 
@@ -201,7 +201,7 @@ def plot_index_results(times, values, extrema_df):
     """Creates the index plot with calculation results using Plotly for interactive hover."""
     # Create a Plotly figure
     fig = go.Figure()
-    
+
     # Add main line trace
     fig.add_trace(go.Scatter(
         x=times.to_pydatetime(),
@@ -211,7 +211,7 @@ def plot_index_results(times, values, extrema_df):
         line=dict(color='blue', width=2),
         hovertemplate='<b>Date:</b> %{x|%Y-%m-%d %H:%M}<br><b>Value:</b> %{y:.4f}<extra></extra>'
     ))
-    
+
     # Add extrema markers if available
     if not extrema_df.empty:
         # Add maxima points
@@ -225,7 +225,7 @@ def plot_index_results(times, values, extrema_df):
                 marker=dict(color='red', size=10, symbol='triangle-up'),
                 hovertemplate='<b>Maximum</b><br><b>Date:</b> %{x|%Y-%m-%d %H:%M}<br><b>Value:</b> %{y:.4f}<extra></extra>'
             ))
-        
+
         # Add minima points
         minima = extrema_df[extrema_df['Type'] == 'Min']
         if not minima.empty:
@@ -237,7 +237,7 @@ def plot_index_results(times, values, extrema_df):
                 marker=dict(color='green', size=10, symbol='triangle-down'),
                 hovertemplate='<b>Minimum</b><br><b>Date:</b> %{x|%Y-%m-%d %H:%M}<br><b>Value:</b> %{y:.4f}<extra></extra>'
             ))
-    
+
     # Update layout
     fig.update_layout(
         title="Collinearity Index (C) vs. Time",
@@ -250,11 +250,11 @@ def plot_index_results(times, values, extrema_df):
         height=500,
         grid=dict(rows=1, columns=1)
     )
-    
+
     # Add grid lines
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.1)')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.1)')
-    
+
     return fig
 
 
@@ -269,7 +269,7 @@ def plot_system_view(time_dt_utc):
 
     # Create a Plotly figure
     fig = go.Figure()
-    
+
     # Add Sun at the center
     fig.add_trace(go.Scatter(
         x=[0],
@@ -299,11 +299,11 @@ def plot_system_view(time_dt_utc):
             ),
             hovertemplate=f'<b>{label}</b><br>X: %{{x:.3f}} AU<br>Y: %{{y:.3f}} AU<extra></extra>'
         ))
-    
+
     # Determine plot limits dynamically
     max_range = np.max(np.abs(points_2d)) * 1.2  # Add some padding
     max_range = max(max_range, 1.5)  # Ensure minimum range (e.g., Earth's orbit)
-    
+
     # Update layout
     fig.update_layout(
         title=f"System at {time_dt_utc.strftime('%Y-%m-%d %H:%M')} UTC<br>C = {current_c_index:.4f}",
@@ -318,11 +318,11 @@ def plot_system_view(time_dt_utc):
         height=500,
         grid=dict(rows=1, columns=1)
     )
-    
+
     # Add grid lines
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.1)')
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.1)')
-    
+
     return fig
 
 
@@ -331,35 +331,38 @@ def plot_system_view(time_dt_utc):
 # Sidebar for controls
 with st.sidebar:
     st.header("Calculation Controls")
-    
+
     # Date selection
     st.subheader("Date Range")
-    
-    # Set default dates (+/- 6 months)
+
+    # Set default dates (start from 2000, end +6 months from today)
     today = datetime.date.today()
     default_start = today - datetime.timedelta(days=180)
     default_end = today + datetime.timedelta(days=180)
-    
-    start_date = st.date_input("Start Date", value=default_start)
-    end_date = st.date_input("End Date", value=default_end)
-    
+
+    # Set min_value to January 1, 2000 for both date pickers
+    min_date = datetime.date(2000, 1, 1)
+
+    start_date = st.date_input("Start Date", value=default_start, min_value=min_date)
+    end_date = st.date_input("End Date", value=default_end, min_value=min_date)
+
     # Number of steps slider
     num_steps = st.slider("Resolution (data points)", min_value=100, max_value=1000, value=500, step=100,
                          help="Higher values give more detailed results but take longer to calculate")
-    
+
     # Calculate button
     calculate_button = st.button("Calculate & Plot", type="primary", use_container_width=True)
-    
+
     # Information section
     st.markdown("---")
     st.subheader("About")
     st.markdown("""
     This application visualizes the collinearity of Mercury, Venus, Earth, and the Moon in the solar system.
-    
+
     The collinearity index (C) ranges from 0 to 1:
     - 1.0 = Perfect alignment
     - 0.0 = No alignment
-    
+
     Select a date range and click Calculate to find interesting alignments.
     """)
 
@@ -375,18 +378,18 @@ if calculate_button:
             # Convert dates to timezone-aware datetimes for Skyfield
             start_dt_utc = pd.Timestamp(start_date).tz_localize('UTC')
             end_dt_utc = pd.Timestamp(end_date).tz_localize('UTC')
-            
+
             # Show progress bar
             progress_bar = st.progress(0, text="Initializing calculation...")
-            
+
             # Run calculation
             times, values = calculate_collinearity_over_range(
                 start_dt_utc, end_dt_utc, num_steps, progress_bar
             )
-            
+
             # Find extrema
             extrema_df = find_extrema(times, values)
-            
+
             # Store results in session state
             st.session_state.calculation_results = {
                 'times': times,
@@ -399,7 +402,7 @@ if calculate_button:
 
             # Add a small delay to ensure progress bar is seen
             time.sleep(0.5)
-            
+
         except Exception as e:
             st.error(f"An error occurred during calculation: {e}")
 
@@ -407,13 +410,13 @@ if calculate_button:
 if st.session_state.calculation_results and 'times' in st.session_state.calculation_results:
     results = st.session_state.calculation_results
     display_df = pd.DataFrame() # Initialize display_df
-    
+
     with col1:
         # Plot the collinearity index
         st.subheader("Collinearity Index Over Time")
         index_fig = plot_index_results(results['times'], results['values'], results['extrema_df'])
         st.plotly_chart(index_fig, use_container_width=True)
-        
+
         # Display extrema in a table
         st.subheader("Extreme Collinearity Events")
         if results['extrema_df'].empty:
@@ -424,17 +427,17 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
             display_df['Time (UTC)'] = display_df['Time'].dt.strftime('%Y-%m-%d %H:%M')
             display_df['Collinearity Index'] = display_df['Index'].round(4)
             display_df['Event Type'] = display_df['Type']
-            
+
             # Create a styled dataframe with color coding for Max and Min events
             def color_event_type(val):
                 color = 'red' if val == 'Max' else 'green' if val == 'Min' else ''
                 return f'color: {color}; font-weight: bold'
-            
+
             # Apply styling to the dataframe
             styled_df = display_df[['Time (UTC)', 'Collinearity Index', 'Event Type']].style.applymap(
                 color_event_type, subset=['Event Type']
             )
-            
+
             # Display as an interactive table
             st.write("Click on a row to view the solar system configuration:")
             selected_rows = st.dataframe(
@@ -448,39 +451,39 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
                     )
                 }
             ).selected_rows
-            
+
             # Handle row selection from the dataframe
             if selected_rows and isinstance(selected_rows, list) and len(selected_rows) > 0:
                 try:
                     # In Streamlit, selected_rows returns a list of dictionaries with the row data
                     selected_row_data = selected_rows[0]  # Get the first selected row
-                    
+
                     # Debug information to see what's in the selected row
                     with st.expander("Debug info (click to expand)", expanded=False):
                         st.write("Selected row data:", selected_row_data)
-                    
+
                     # Extract the time string from the selected row
                     if 'Time (UTC)' in selected_row_data:
                         selected_time_str = selected_row_data['Time (UTC)']
-                        
+
                         # Find the matching index in the original dataframe
                         matching_rows = display_df[display_df['Time (UTC)'] == selected_time_str]
-                        
+
                         if not matching_rows.empty:
                             selected_index = matching_rows.index[0]
                             # Update the session state with the selected time
                             st.session_state.selected_extrema_time = results['extrema_df'].loc[selected_index, 'Time']
-                            
+
                             # Force a rerun to update the visualization immediately
                             st.rerun()
                 except (TypeError, AttributeError, IndexError) as e:
                     st.warning(f"Could not process selection: {e}. Please try clicking again or use the navigation controls.")
                     # Don't stop execution, let the user try again or use the navigation controls
-    
+
     with col2:
         # System view plot
         st.subheader("Solar System View")
-       
+
         # Always display the system view using the time in session state
         # This will be the DEFAULT_VIEW_TIME initially and after calculation,
         # or the time selected from the table/navigation.
@@ -572,7 +575,7 @@ if st.session_state.calculation_results and 'times' in st.session_state.calculat
             if selected_extrema is not None and selected_extrema != current_index:
                 st.session_state.selected_extrema_time = results['extrema_df'].loc[selected_extrema, 'Time']
                 st.rerun()
-            
+
             st.info("""
             This view shows the positions of Mercury, Venus, Earth, and the Moon from above the ecliptic plane.
             The Sun is at the center (0,0). Perfect alignment would show all bodies in a straight line.
@@ -582,6 +585,6 @@ else:
     # Initial state - no calculation yet
     with col1:
         st.info("Select a date range and click 'Calculate & Plot' to begin.")
-    
+
     with col2:
         st.info("Solar system view will appear here after calculation.")
